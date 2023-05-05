@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Update the system
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+# Function to check if VMware Workstation is installed
+is_vmware_installed() {
+  command -v vmware >/dev/null 2>&1
+}
+
+# Install VMware Workstation if not installed
+if ! is_vmware_installed; then
+  echo "VMware Workstation not found, installing..."
+
+  # Download the latest VMware Workstation bundle
+  VMWARE_URL="https://www.vmware.com/go/getworkstation-linux"
+  VMWARE_BUNDLE="vmware-workstation.bundle"
+  wget -O "$VMWARE_BUNDLE" "$VMWARE_URL"
+
+  # Install VMware Workstation
+  sudo bash "$VMWARE_BUNDLE" --console --eulas-agreed
+
+  # Remove the downloaded bundle
+  rm "$VMWARE_BUNDLE"
+fi
+
+# Set VM configuration parameters
+VM_NAME="my-vm"
+VM_PATH="/path/to/vmware/vms"
+VM_CONFIG_PATH="${VM_PATH}/${VM_NAME}/${VM_NAME}.vmx"
+RAM="2048"
+VCPU="2"
+DISK_SIZE="10G"
+ISO_PATH="/path/to/ubuntu-20.04.3-live-server-amd64.iso"
+
+# Create a new VM directory
+mkdir -p "${VM_PATH}/${VM_NAME}"
+
+# Create a new VM configuration file
+cat > "$VM_CONFIG_PATH" << EOL
+.encoding = "UTF-8"
+config.version = "8"
+virtualHW.version = "16"
+nvram = "${VM_NAME}.nvram"
+displayName = "${VM_NAME}"
+guestOS = "ubuntu-64"
+memsize = "${RAM}"
+numvcpus = "${VCPU}"
+scsi0.present = "TRUE"
+scsi0.virtualDev = "lsilogic"
+sata0.present = "TRUE"
+sata0:0.present = "TRUE"
+sata0:0.fileName = "${VM_NAME}.vmdk"
+sata0:1.present = "TRUE"
+sata0:1.fileName = "${ISO_PATH}"
+sata0:1.deviceType = "cdrom-image"
+ide1:0.present = "TRUE"
+ide1:0.fileName = "emptyBacking"
+ide1:0.deviceType = "atapi-cdrom"
+floppy0.present = "FALSE"
+serial0.present = "FALSE"
+parallel0.present = "FALSE"
+sound.present = "FALSE"
+usb.present = "TRUE"
+ehci.present = "TRUE"
+svga.present = "TRUE"
+pciBridge0.present = "TRUE"
+pciBridge4.present = "TRUE"
+pciBridge4.virtualDev = "pcieRootPort"
+pciBridge4.functions = "8"
+pciBridge5.present = "TRUE"
+pciBridge5.virtualDev = "pcieRootPort"
+pciBridge5.functions = "8"
+pciBridge6.present = "TRUE"
+pciBridge6.virtualDev = "pcieRootPort"
+pciBridge6.functions = "8"
+pciBridge7.present = "TRUE"
+pciBridge7.virtualDev = "pcieRootPort"
+pciBridge7.functions = "8"
+vmci0.present = "TRUE"
+hpet0.present = "TRUE"
+virtualHW.productCompatibility = "hosted"
+tools.upgrade.policy = "upgradeAtPowerCycle"
+EOL
+
+# Create the virtual disk
+
+vmware-vdiskmanager -c -s "${DISK_SIZE}" -a ls
+vmware-vdiskmanager -c -s "${DISK_SIZE}" -a lsilogic -t 0 "${VM
+vmware-vdiskmanager -c -s "${DISK_SIZE}" -a lsilogic -t 0 "${VM_PATH}/${VM_NAME}/${VM_NAME}.vmdk"
+
+# Power on the VM
+vmrun -T ws start "${VM_CONFIG_PATH}"
